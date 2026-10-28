@@ -335,6 +335,7 @@ def test_windows_install_command_is_silent_and_detached_friendly(tmp_path):
     assert plan.command[0] == str(exe) and "/SILENT" in plan.command and "/NWUPDATE=1" in plan.command
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="macOS updater script uses POSIX paths and sh")
 def test_macos_script_is_valid_shell_and_quotes_paths(tmp_path):
     app = Path("/Applications/My Apps/Net Watcher.app")
     script = installer.macos_script(tmp_path / "it's a dmg.dmg", app, 4242, "1.1.0", tmp_path / "log.txt")

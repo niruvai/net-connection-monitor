@@ -165,7 +165,8 @@ def pytest_unconfigure(config):
     # Some Python/PySide6 combinations abort during the interpreter's final garbage
     # collection of Qt objects, after every test has already passed. Results are fully
     # reported by now, so exit with pytest's own status and skip that teardown.
-    if os.environ.get("NET_WATCHER_TEST_HARD_EXIT", "1") == "1":
+    # (Not on Windows, where a hard exit with live Qt threads can itself crash.)
+    if sys.platform != "win32" and os.environ.get("NET_WATCHER_TEST_HARD_EXIT", "1") == "1":
         sys.stdout.flush()
         sys.stderr.flush()
         os._exit(_exit_status)
