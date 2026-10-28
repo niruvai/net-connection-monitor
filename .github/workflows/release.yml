@@ -23,7 +23,7 @@ jobs:
     outputs:
       tag: ${{ steps.v.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: v
         run: |
           version=$(python3 -c "import re;print(re.search(r'__version__ = \"([^\"]+)\"', open('core/version.py').read()).group(1))")
@@ -43,8 +43,8 @@ jobs:
     needs: meta
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Build app and DMG (ad-hoc signed)
@@ -52,7 +52,11 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           python -m venv .venv
-          ./packaging/build_macos.sh
+          set -o pipefail
+          ./packaging/build_macos.sh 2>&1 | tee build.log || {
+            echo "::error title=macOS build failed::$(tail -n 60 build.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
@@ -64,8 +68,8 @@ jobs:
     needs: meta
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Inno Setup
@@ -78,7 +82,19 @@ jobs:
         shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
-        run: .\packaging\build_windows.ps1
+        run: |
+          $failed = $false
+          try {
+            & .\packaging\build_windows.ps1 *>&1 | Tee-Object -FilePath build.log
+          } catch {
+            $failed = $true
+            "ERROR: $($_ | Out-String)" | Tee-Object -FilePath build.log -Append
+          }
+          if ($failed -or -not (Test-Path dist\installer\*.exe)) {
+            $tail = (Get-Content build.log -Tail 60) -join "%0A"
+            Write-Output "::error title=Windows build failed::$tail"
+            exit 1
+          }
       - name: Zip portable build
         shell: pwsh
         run: |
@@ -96,7 +112,7 @@ jobs:
     if: ${{ !cancelled() && (needs.macos.result == 'success' || needs.windows.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
