@@ -1,23 +1,35 @@
 name: Release
 
-# Push a tag like v1.0.0 (or run manually) to build the macOS and Windows apps
-# and publish them as a GitHub Release.
+# Builds the macOS and Windows apps and publishes them as a GitHub Release named
+# v<version>, where <version> comes from core/version.py. Runs when that version
+# changes on main, when a v* tag is pushed, or manually from the Actions tab.
 on:
   push:
+    branches: [main]
+    paths: ["core/version.py", ".github/workflows/release.yml"]
     tags: ["v*"]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Existing tag to (re)build and publish, e.g. v1.0.0"
-        required: true
 
 permissions:
   contents: write
 
-env:
-  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          version=$(python3 -c "import re;print(re.search(r'__version__ = \"([^\"]+)\"', open('core/version.py').read()).group(1))")
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "Release tag: v$version"
+
   macos:
     name: macOS (${{ matrix.arch }})
     strategy:
@@ -28,11 +40,10 @@ jobs:
             arch: arm64
           - runner: macos-15-intel
             arch: x64
+    needs: meta
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -50,11 +61,10 @@ jobs:
 
   windows:
     name: Windows (x64)
+    needs: meta
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -82,13 +92,11 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: [macos, windows]
+    needs: [meta, macos, windows]
     if: ${{ !cancelled() && (needs.macos.result == 'success' || needs.windows.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TAG }}
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -100,8 +108,9 @@ jobs:
           cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: Net Watcher ${{ env.RELEASE_TAG }}
+          tag_name: ${{ needs.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Net Watcher ${{ needs.meta.outputs.tag }}
           body_path: .github/RELEASE_NOTES.md
           generate_release_notes: true
           files: artifacts/*
