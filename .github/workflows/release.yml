@@ -6,7 +6,7 @@ name: Release
 on:
   push:
     branches: [main]
-    paths: ["core/version.py", ".github/workflows/release.yml"]
+    paths: ["core/version.py", "packaging/**", ".github/workflows/release.yml", ".github/RELEASE_NOTES.md"]
     tags: ["v*"]
   workflow_dispatch:
 
