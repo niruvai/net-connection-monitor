@@ -13,7 +13,7 @@ It quietly checks your connection in the background and makes a scene the moment
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[Features](#features) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Building installers](#building-installers) · [Updates](#signed-auto-updates) · [বাংলা](#বাংলায়-সংক্ষেপে)
+[Features](#features) · [Screenshots](#screenshots) · [Download](#download) · [Quick start](#quick-start-from-source) · [How it works](#how-it-works) · [Building installers](#building-installers) · [Updates](#signed-auto-updates) · [বাংলা](#বাংলায়-সংক্ষেপে)
 
 </div>
 
@@ -62,7 +62,27 @@ hard evidence for your ISP.
 - **Leave it running in the tray** on an office or home PC and start it automatically at login.
 - **Use it as a reference project** for a clean PySide6 desktop app: background threads, Qt signal bridges, a pure-Python core, tests with offscreen Qt, PyInstaller packaging and a secure updater.
 
-## Quick start
+## Download
+
+Ready-to-run builds are on the **[Releases page](https://github.com/niruvai/net-connection-monitor/releases/latest)**:
+
+| Platform | File |
+|---|---|
+| macOS — Apple Silicon (M1–M4) | `NetWatcher-<version>-arm64.dmg` |
+| macOS — Intel | `NetWatcher-<version>-x64.dmg` |
+| Windows 10/11 | `NetWatcher-Setup-<version>.exe` (installer) or `…-windows-portable.zip` |
+
+Net Watcher is free and open source, so the builds are not signed with a paid Apple/Microsoft certificate and your
+system warns you on first launch:
+
+- **macOS:** open the app once, click **Done**, then **System Settings → Privacy & Security → Open Anyway**.
+  (Or run `xattr -dr com.apple.quarantine "/Applications/Net Watcher.app"`.)
+- **Windows:** on the SmartScreen prompt click **More info → Run anyway**.
+
+Releases are built automatically by GitHub Actions from the tagged source code
+([`release.yml`](.github/workflows/release.yml)), so you can verify exactly what went into them.
+
+## Quick start (from source)
 
 **Requirements:** Python 3.10 or newer.
 
@@ -188,7 +208,7 @@ installed it also produces `dist\installer\NetWatcher-Setup-<version>.exe` with 
 ./packaging/create_dmg.sh             # only the DMG, from an existing .app
 ```
 
-The app is ad-hoc signed by default (right-click → Open on first launch). For distribution set
+The app is ad-hoc signed by default (users allow it once via System Settings → Privacy & Security → Open Anyway). For distribution set
 `CODESIGN_IDENTITY="Developer ID Application: …"` and optionally `NOTARY_PROFILE=<notarytool profile>`.
 
 The version lives only in `core/version.py`; the app, spec, installer and DMG script all read it from there.
@@ -263,7 +283,7 @@ to your own `FEED_URL`.
 - নিজের পছন্দের সাউন্ড, ডার্ক/লাইট থিম, সিস্টেম ট্রে, কম্পিউটার চালু হলে অটো-স্টার্ট — সব সেটিংসে আছে।
 - Windows ও macOS-এর জন্য ইনস্টলার বানানো যায়, এবং নিরাপদ (সাইন করা) অটো-আপডেট সাপোর্ট আছে।
 
-চালানোর জন্য উপরের [Quick start](#quick-start) অংশটি দেখুন।
+ডাউনলোড করতে [Releases](https://github.com/niruvai/net-connection-monitor/releases/latest) পেজে যান (Mac-এর জন্য `.dmg`, Windows-এর জন্য `.exe`)। প্রথমবার খোলার নিয়ম উপরের [Download](#download) অংশে আছে।
 
 ## Contributing
 
