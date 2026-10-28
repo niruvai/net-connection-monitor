@@ -80,6 +80,17 @@ def qapp():
 
     app = QApplication.instance() or QApplication([])
     yield app
+    # Release Qt objects while the QApplication is still alive. Leaving them to the
+    # interpreter's final garbage collection can abort the process on some
+    # Python/PySide6 combinations (e.g. Python 3.10 + PySide6 6.12).
+    import gc
+
+    for widget in app.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+    app.processEvents()
+    gc.collect()
+    app.processEvents()
 
 
 @pytest.fixture(autouse=True)
@@ -140,3 +151,21 @@ def make_controller(qapp, tmp_path):
     yield factory
     for c in created:
         c.shutdown()
+
+
+_exit_status = 0
+
+
+def pytest_sessionfinish(session, exitstatus):
+    global _exit_status
+    _exit_status = int(exitstatus)
+
+
+def pytest_unconfigure(config):
+    # Some Python/PySide6 combinations abort during the interpreter's final garbage
+    # collection of Qt objects, after every test has already passed. Results are fully
+    # reported by now, so exit with pytest's own status and skip that teardown.
+    if os.environ.get("NET_WATCHER_TEST_HARD_EXIT", "1") == "1":
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(_exit_status)
